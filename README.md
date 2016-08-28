@@ -1,2 +1,2 @@
 # udp-on-xbee
-Python code to mimic UDP on XBee S2C
+Python code to mimic 'UDP' on XBee S2C

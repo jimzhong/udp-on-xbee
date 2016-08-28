@@ -71,8 +71,8 @@ class XBeeRXPacket(XBeeInFrame):
 
     def __init__(self, frame):
         assert frame[3] == self.RX_PACKET
-        self.addr64 = int.from_bytes(frame[4:12], 'big')
-        self.addr16 = int.from_bytes(frame[12:14], 'big')
+        self.addr64 = frame[4:12]
+        self.addr16 = frame[12:14]
         self.data = frame[15:-1]
 
     def __str__(self):
@@ -116,14 +116,16 @@ class XBeeTXRequest(XBeeOutFrame):
     TX_REQ_HEADER_FMT = "!BBQHBB"
     TX_REQ_HEADER_SIZE = calcsize(TX_REQ_HEADER_FMT)
 
-    def __init__(self, addr64, *data):
+    def __init__(self, addr64, *data, **kwargs):
         self.data = b''.join(data)
+        if isinstance(addr64, bytes):
+            self.addr64 = int.from_bytes(addr64, 'big')
         if isinstance(addr64, str):
             self.addr64 = int(addr64, 16)
         elif isinstance(addr64, int):
             self.addr64 = addr64
         else:
-            raise TypeError("Addr64 should be string or int")
+            raise TypeError("Addr64 should be bytes, string or int")
 
     def __bytes__(self):
         length = len(self.data) + self.TX_REQ_HEADER_SIZE

@@ -1,5 +1,4 @@
 from struct import pack, unpack, calcsize
-from binascii import hexlify, unhexlify
 from enum import Enum
 import logging
 
@@ -165,6 +164,7 @@ class XBeeATRequest(XBeeOutFrame):
 
 
 if __name__ == "__main__":
+    from binascii import hexlify, unhexlify
     frame = XBeeTXRequest("eeeeee", b'TxData1B')
     frame = XBeeATRequest("NI")
     frame = XBeeInFrame.from_bytes(unhexlify("7e00028a066f"))

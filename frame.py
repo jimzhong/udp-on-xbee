@@ -56,12 +56,10 @@ class XBeeATResponse(XBeeInFrame):
         value is a bytearray
         '''
         assert data[3] == self.AT_RESPONSE
-        atcmd = data[5:7]
-        atdata = data[8:-1]
         self.frame_id = data[4]
         self.status = data[7]
-        self.key = atcmd.decode()
-        self.value = atdata
+        self.key = data[5:7].decode()
+        self.value = data[8:-1]
 
     def __str__(self):
         return "ATResponse: {} = {}".format(self.key, self.value)
@@ -81,15 +79,35 @@ class XBeeRXPacket(XBeeInFrame):
 
 class XBeeTXStatus(XBeeInFrame):
 
+    class DeliveryStatus(Enum):
+        SUCCESS = 0
+        MAC_ACK_FAILURE = 0x01
+        CCA_FAILURE = 0x02
+        INVALID_DEST_ENDPOINT = 0x15
+        NETWORK_ACK_FAILURE = 0x21
+        NOT_JOINED = 0x22
+        SELF_ADDRESSED = 0x23
+        ADDRESS_NOT_FOUND = 0x24
+        ROUTE_NOT_FOUND = 0x25
+        BROADCAST_SOURCE_FAIL = 0x26
+        INVALID_BINDING_TABLE_INDEX = 0x2B
+        RESOURCE_BUSY_1 = 0x2c
+        ATTEMPT_BROADCAST_WITH_APS = 0x2d
+        ATTEMPT_UNICAST_WITH_APS_BUT_EE00 = 0x2e
+        RESOURCE_BUSY_2 = 0x32
+        DATA_PAYLOAD_TOO_LARGE = 0x74
+        INDIRECT_MESSAGE_UNREQ = 0x75
+
     def __init__(self, frame):
         assert frame[3] == self.TX_STATUS
         self.frame_id = frame[4]
         self.addr16 = int.from_bytes(frame[5:7], 'big')
-        self.delivery_status = frame[8]
+        self.delivery_status = self.DeliveryStatus(frame[8])
         self.discovery_status = frame[9]
 
     def __str__(self):
-        return "TXStatus: delivery={}, discovery={}".format(self.delivery_status, self.discovery_status)
+        return "TXStatus: delivery={}, discovery={}, frame={}".format(
+            self.delivery_status, self.discovery_status, self.frame_id)
 
 
 class XBeeModemStatus(XBeeInFrame):
@@ -126,11 +144,12 @@ class XBeeTXRequest(XBeeOutFrame):
             self.addr64 = addr64
         else:
             raise TypeError("Addr64 should be bytes, string or int")
+        self.frame_id = kwargs.get("frame_id", 0)
 
     def __bytes__(self):
         length = len(self.data) + self.TX_REQ_HEADER_SIZE
         ohdr = pack("!BH", 0x7e, length)
-        ihdr = pack(self.TX_REQ_HEADER_FMT, self.TX_REQUEST_CMD, 0, self.addr64, 0xfffe, 0, 0)
+        ihdr = pack(self.TX_REQ_HEADER_FMT, self.TX_REQUEST_CMD, self.frame_id, self.addr64, 0xfffe, 0, 0)
         checksum = 0xff - ((sum(ihdr) + sum(self.data)) & 0xff)
         checksum = pack("!B", checksum)
         return b"".join([ohdr, ihdr, self.data, checksum])

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import socket
 from struct import pack, unpack, calcsize
+from binascii import hexlify, unhexlify
 
 class error(IOError):
     pass
@@ -17,13 +18,19 @@ class ZSocket(object):
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
         self.local_port = None
 
+    def settimeout(self, timeout):
+        self.sock.settimeout(timeout)
+
     def bind(self, local_port=0):
         assert 0 <= local_port <= 0xff
         try:
             self.sock.connect(self.SOCKET_PATH)
+        except socket.error:
+            raise error("daemon is not running?")
+        try:
             self.sock.send(str(local_port).encode())
             result = self.sock.recv(100)
-        except socket.error:
+        except:
             raise error("bind error")
         if result:
             self.local_port = int(result.decode())
@@ -44,19 +51,25 @@ class ZSocket(object):
             raise TypeError("Invalid address format")
 
         hdr = pack(self.HDR_FMT, remote_addr, remote_port)
-        self.sock.send(hdr + data)
+        try:
+            self.sock.send(hdr + data)
+        except socket.timeout:
+            raise error("send timed out")
 
-    def recvfrom(buffersize=1000):
+    def recvfrom(self, buffersize=1000):
         '''
         Receive from a bound socket
-        return (data, remote_addr, remote_port)
+        return data, (remote_addr, remote_port)
         '''
         if self.local_port is None:
             raise error("bind before recv")
-        data = self.sock.recv(buffersize)
-        payload = data[hdrlen:]
-        a, b = unpack(self.HDR_FMT, data[:self.HDR_LEN])
-        return payload, (hexlify(a).decode(), b[0])
+        try:
+            data = self.sock.recv(buffersize)
+        except socket.timeout:
+            raise error("recv timed out")
+        payload = data[self.HDR_LEN:]
+        # a, b = unpack(self.HDR_FMT, data[:self.HDR_LEN])
+        return payload, (hexlify(data[:8]).decode(), data[8])
 
     def fileno(self):
         '''

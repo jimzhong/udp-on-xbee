@@ -69,8 +69,8 @@ class XBeeRXPacket(XBeeInFrame):
 
     def __init__(self, frame):
         assert frame[3] == self.RX_PACKET
-        self.addr64 = frame[4:12]
-        self.addr16 = frame[12:14]
+        self.addr64 = int.from_bytes(frame[4:12], 'big')
+        self.addr16 = int.from_bytes(frame[12:14], 'big')
         self.data = frame[15:-1]
 
     def __str__(self):

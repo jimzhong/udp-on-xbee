@@ -10,7 +10,7 @@ from queue import Queue, Empty
 from binascii import hexlify, unhexlify
 from .frame import *
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 class Connection(object):
 
@@ -141,7 +141,7 @@ class Daemon(object):
                     dest_port = frame.data[1]
                     logging.info("received datagram to port {} from {:x}:{}".format(dest_port, frame.addr64, src_port))
                     if dest_port in self.port2conn:
-                        self.port2conn[dest_port].deliver(data[2:], frame.addr64, src_port)
+                        self.port2conn[dest_port].deliver(frame.data[2:], frame.addr64, src_port)
                     else:
                         logging.warning("Could not find port {}".format(dest_port))
                 elif isinstance(frame, XBeeTXStatus):
@@ -235,7 +235,8 @@ class Daemon(object):
                 length = self.serial_in[1] * 256 + self.serial_in[2]
                 if len(self.serial_in) >= length+4:
                     logging.debug("[SERIAL] found new frame of length {}".format(length))
-                    self.info['rx_total'] += 1
+                    if isinstance(frame, XBeeRXPacket):
+                        self.info['rx_total'] += 1
                     frame = self.serial_in[:length+4]
                     self.frames_in.put(XBeeInFrame.from_bytes(frame))
                     self.serial_in = self.serial_in[length+4:]

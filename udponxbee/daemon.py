@@ -235,10 +235,10 @@ class Daemon(object):
                 length = self.serial_in[1] * 256 + self.serial_in[2]
                 if len(self.serial_in) >= length+4:
                     logging.debug("[SERIAL] found new frame of length {}".format(length))
+                    frame = XBeeInFrame.from_bytes(self.serial_in[:length+4])
                     if isinstance(frame, XBeeRXPacket):
                         self.info['rx_total'] += 1
-                    frame = self.serial_in[:length+4]
-                    self.frames_in.put(XBeeInFrame.from_bytes(frame))
+                    self.frames_in.put(frame)
                     self.serial_in = self.serial_in[length+4:]
                 else:
                     break

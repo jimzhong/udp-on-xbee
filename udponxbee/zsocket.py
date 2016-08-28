@@ -30,7 +30,9 @@ class ZSocket(object):
         else:
             raise error("bind error")
 
-    def sendto(self, data, remote_addr, remote_port):
+    def sendto(self, data, address):
+        remote_addr = address[0]
+        remote_port = address[1]
         if self.local_port is None:
             # Implicit binding
             self.bind()
@@ -54,7 +56,7 @@ class ZSocket(object):
         data = self.sock.recv(buffersize)
         payload = data[hdrlen:]
         a, b = unpack(self.HDR_FMT, data[:self.HDR_LEN])
-        return (payload, hexlify(a).decode(), b[0])
+        return payload, (hexlify(a).decode(), b[0])
 
     def fileno(self):
         '''
